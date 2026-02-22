@@ -28,6 +28,19 @@ if [ -n "\$TELEGRAM_ALLOW_FROM" ]; then
     " 2>&1 || true
 fi
 
+# Fix invalid config keys (e.g. agent-written unknown keys that crash gateway)
+node -e "
+    const fs=require('fs');
+    const f='$STATE/openclaw.json';
+    try {
+        const cfg=JSON.parse(fs.readFileSync(f,'utf8'));
+        const tel=cfg?.plugins?.entries?.telegram;
+        let fixed=false;
+        if(tel&&tel.streaming!==undefined){delete tel.streaming;fixed=true;}
+        if(fixed){fs.writeFileSync(f,JSON.stringify(cfg,null,2));console.log('Fixed openclaw.json: removed unknown keys');}
+    } catch(e){}
+" 2>&1 || true
+
 # Start gateway
 node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789 &
 GATEWAY_PID=$!

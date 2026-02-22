@@ -2,7 +2,7 @@
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789"
+startCommand = "sh -c \"echo '=== GATEWAY TOKEN ===' && cat /home/node/.openclaw/openclaw.json 2>/dev/null | python3 -c \\\"import json,sys; d=json.load(sys.stdin); print(d.get('gateway',{}).get('auth',{}).get('token','NOT FOUND'))\\\" 2>/dev/null || echo 'config not found yet' && echo '==================' && node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789\""
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"

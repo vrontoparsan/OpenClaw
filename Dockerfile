@@ -51,18 +51,10 @@ RUN pnpm ui:build
 
 ENV NODE_ENV=production
 
-# Security hardening: Run as non-root user
-# The node:22-bookworm image includes a 'node' user (uid 1000)
-# This reduces the attack surface by preventing container escape via root privileges
-USER node
+# Run as root so start.sh can fix volume permissions, then drop to node
+USER root
 
-# Start gateway server with default config.
-# Binds to loopback (127.0.0.1) by default for security.
-#
-# For container platforms requiring external health checks:
-#   1. Set OPENCLAW_GATEWAY_TOKEN or OPENCLAW_GATEWAY_PASSWORD env var
-#   2. Override CMD: ["node","openclaw.mjs","gateway","--allow-unconfigured","--bind","lan"]
-# v4 - cache bust 2026-02-22
-COPY --chown=node:node start.sh /app/start.sh
+# v5 - persistent volume fix 2026-02-22
+COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 CMD ["/bin/sh", "/app/start.sh"]

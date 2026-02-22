@@ -9,15 +9,14 @@ STATE="${OPENCLAW_STATE_DIR:-/home/node/.openclaw}"
 if [ "$(id -u)" = "0" ]; then
     echo "Root detected — fixing /data volume permissions..."
 
-    # Make /data writable by node user
+    # Make /data writable
     mkdir -p /data
     chown node:node /data
 
-    # Pre-create state dirs owned by node
+    # Pre-create state dirs
     mkdir -p "$STATE/devices" "$STATE/credentials"
-    chown -R node:node "$STATE"
 
-    # Write devices/paired.json (pre-approve all devices)
+    # Write devices/paired.json (preserve existing approved devices)
     node -e "
         const fs=require('fs');
         const f='$STATE/devices/paired.json';
@@ -37,6 +36,9 @@ if [ "$(id -u)" = "0" ]; then
             console.log('Telegram allowFrom written:', ids);
         " 2>&1 || true
     fi
+
+    # Fix ownership AFTER creating files so node user can modify them
+    chown -R node:node "$STATE"
 
     echo "Permissions fixed. Switching to node user..."
     exec su node -s /bin/sh -- "$0" "$@"

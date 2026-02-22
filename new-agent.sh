@@ -7,7 +7,8 @@ set -e
 # --- Konfigurácia ---
 RAILWAY_TOKEN="774d3dd9-4d9d-4308-8840-ecb4dc8964cd"
 DOCKER_IMAGE="ghcr.io/vrontoparsan/openclaw:latest"
-ANTHROPIC_OAUTH_TOKEN="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"
+ANTHROPIC_OAUTH_TOKEN="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"
+WORKSPACE_ID="62a224e4-658b-4299-9989-89d6c0e5c456"  # vrontoparsan's Projects
 
 # --- Parametre ---
 NAME=""
@@ -75,6 +76,7 @@ echo "📁 Vytváram Railway projekt '$PROJECT_NAME'..."
 PROJECT_RESULT=$(echo "mutation {
   projectCreate(input: {
     name: \"$PROJECT_NAME\"
+    workspaceId: \"$WORKSPACE_ID\"
   }) { id name environments { edges { node { id name } } } }
 }" | gql)
 

@@ -1,5 +1,10 @@
 # Repository Guidelines
 
+## Railway Deployment (vrontoparsan fork)
+
+For deploying new customer agents to Railway, read **`RAILWAY_DEPLOY.md`** first.
+It contains credentials, workspace IDs, existing agent table, OAuth token refresh procedure, and troubleshooting.
+
 - Repo: https://github.com/openclaw/openclaw
 - GitHub issues/comments/PR comments: use literal multiline strings or `-F - <<'EOF'` (or $'...') for real newlines; never embed "\\n".
 

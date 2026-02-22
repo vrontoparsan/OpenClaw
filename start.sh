@@ -8,14 +8,14 @@ echo "STATE_DIR: $STATE"
 # Create state dirs
 mkdir -p "$STATE/devices" "$STATE/credentials"
 
-# Write devices/paired.json (preserve existing approved devices)
+# Write devices/paired.json - format is Record<string,PairedDevice> (object, not array!)
 node -e "
     const fs=require('fs');
     const f='$STATE/devices/paired.json';
-    let arr=[];
-    try{arr=JSON.parse(fs.readFileSync(f,'utf8'))||[];}catch(e){}
-    fs.writeFileSync(f,JSON.stringify(arr));
-    console.log('Devices paired.json:', arr.length, 'entries');
+    let obj={};
+    try{const r=JSON.parse(fs.readFileSync(f,'utf8'));if(r&&typeof r==='object'&&!Array.isArray(r))obj=r;}catch(e){}
+    fs.writeFileSync(f,JSON.stringify(obj));
+    console.log('Devices paired.json:', Object.keys(obj).length, 'entries');
 " 2>&1 || true
 
 # Write telegram allowFrom from env var

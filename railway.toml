@@ -2,7 +2,7 @@
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "node dist/index.js gateway --bind 0.0.0.0 --port $PORT"
+startCommand = "node openclaw.mjs gateway --allow-unconfigured --bind lan"
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"

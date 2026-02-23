@@ -97,6 +97,31 @@ with urllib.request.urlopen(req) as r:
 
 ---
 
+## Token Refresher Service
+
+A separate Railway service (`token-refresher`) keeps `ANTHROPIC_OAUTH_TOKEN` fresh for all agents.
+
+- **Repo**: `vrontoparsan/token-refresher` (private)
+- **Project**: `36eb106b-c345-4b93-9431-98c3aa24acef` (vrontoparsan's Projects)
+- **Logic**: checks `TOKEN_EXPIRES_AT` on startup — if token still valid, does nothing; refreshes 30 min before expiry
+- **Triggers 1 redeploy per 8h** on all agents (expected — needed to pick up new token)
+
+### Claude Code inside the agent
+
+Claude Code (`~/.claude/`) lives on ephemeral overlay — lost on restart. Two options:
+
+**Option A** — use env var directly (no persistence needed):
+```bash
+ANTHROPIC_API_KEY=$ANTHROPIC_OAUTH_TOKEN claude ...
+```
+
+**Option B** — move to volume (credentials + history survive restarts):
+```bash
+mv ~/.claude /data/.claude && ln -s /data/.claude ~/.claude
+```
+
+---
+
 ## Existing Agents
 
 | Name | Project ID | Service ID | Environment ID | Domain | Gateway Token |

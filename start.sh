@@ -28,14 +28,29 @@ if [ -n "\$TELEGRAM_ALLOW_FROM" ]; then
     " 2>&1 || true
 fi
 
-# Reset openclaw.json — agent may corrupt it (bad bind, unknown keys, bad cron).
-# Gateway recreates it with defaults. Critical settings come from env vars.
+# Fix openclaw.json — keep valid settings, fix agent-corrupted ones.
 CONFIG="$STATE/openclaw.json"
-if [ -f "$CONFIG" ]; then
-    cp "$CONFIG" "${CONFIG}.bak" 2>/dev/null || true
-    rm -f "$CONFIG"
-    echo "Cleared openclaw.json (backed up to .bak)"
-fi
+node -e "
+    const fs=require('fs');
+    let cfg={};
+    try{cfg=JSON.parse(fs.readFileSync('$CONFIG','utf8'));}catch(e){}
+    // Fix agent-corrupted fields
+    if(cfg.gateway){
+        if(cfg.gateway.bind&&cfg.gateway.bind!=='lan')cfg.gateway.bind='lan';
+    }
+    // Remove known bad keys
+    const tel=cfg?.plugins?.entries?.telegram;
+    if(tel&&tel.streaming!==undefined)delete tel.streaming;
+    // Enable Telegram groups (open policy + require @mention)
+    if(!cfg.channels)cfg.channels={};
+    if(!cfg.channels.telegram)cfg.channels.telegram={};
+    cfg.channels.telegram.groupPolicy='open';
+    if(!cfg.channels.telegram.groups)cfg.channels.telegram.groups={};
+    if(!cfg.channels.telegram.groups['*'])cfg.channels.telegram.groups['*']={};
+    cfg.channels.telegram.groups['*'].requireMention=true;
+    fs.writeFileSync('$CONFIG',JSON.stringify(cfg,null,2));
+    console.log('openclaw.json configured (groups=open, mention=required)');
+" 2>&1 || true
 
 # Start gateway
 node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789 &

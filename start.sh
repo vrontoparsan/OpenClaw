@@ -28,26 +28,14 @@ if [ -n "\$TELEGRAM_ALLOW_FROM" ]; then
     " 2>&1 || true
 fi
 
-# Fix agent-written config issues that break the gateway
-node -e "
-    const fs=require('fs');
-    const f='$STATE/openclaw.json';
-    try {
-        const raw=fs.readFileSync(f,'utf8');
-        const cfg=JSON.parse(raw);
-        let fixed=false;
-        // Remove unknown telegram keys
-        const tel=cfg?.plugins?.entries?.telegram;
-        if(tel&&tel.streaming!==undefined){delete tel.streaming;fixed=true;}
-        // Force bind to lan (agent may set loopback which breaks Railway)
-        if(cfg?.gateway?.bind && cfg.gateway.bind!=='lan'){
-            cfg.gateway.bind='lan';fixed=true;
-        }
-        // Remove broken cron config (causes TypeError on startup)
-        if(cfg?.cron){delete cfg.cron;fixed=true;}
-        if(fixed){fs.writeFileSync(f,JSON.stringify(cfg,null,2));console.log('Fixed openclaw.json');}
-    } catch(e){console.log('openclaw.json fix skipped:',e.message);}
-" 2>&1 || true
+# Reset openclaw.json — agent may corrupt it (bad bind, unknown keys, bad cron).
+# Gateway recreates it with defaults. Critical settings come from env vars.
+CONFIG="$STATE/openclaw.json"
+if [ -f "$CONFIG" ]; then
+    cp "$CONFIG" "${CONFIG}.bak" 2>/dev/null || true
+    rm -f "$CONFIG"
+    echo "Cleared openclaw.json (backed up to .bak)"
+fi
 
 # Start gateway
 node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789 &

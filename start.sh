@@ -8,6 +8,9 @@ echo "STATE_DIR: $STATE"
 # Create state dirs
 mkdir -p "$STATE/devices" "$STATE/credentials"
 
+# Remove stale .lock files from previous runs
+find "$STATE" -name "*.lock" -delete 2>/dev/null && echo "Stale locks cleaned" || true
+
 # Write devices/paired.json - format is Record<string,PairedDevice> (object, not array!)
 node -e "
     const fs=require('fs');

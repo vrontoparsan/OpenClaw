@@ -33,17 +33,20 @@ node -e "
     const fs=require('fs');
     const f='$STATE/openclaw.json';
     try {
-        const cfg=JSON.parse(fs.readFileSync(f,'utf8'));
+        const raw=fs.readFileSync(f,'utf8');
+        const cfg=JSON.parse(raw);
         let fixed=false;
         // Remove unknown telegram keys
         const tel=cfg?.plugins?.entries?.telegram;
         if(tel&&tel.streaming!==undefined){delete tel.streaming;fixed=true;}
         // Force bind to lan (agent may set loopback which breaks Railway)
-        if(cfg?.gateway?.bind && cfg.gateway.bind !== 'lan'){
+        if(cfg?.gateway?.bind && cfg.gateway.bind!=='lan'){
             cfg.gateway.bind='lan';fixed=true;
         }
-        if(fixed){fs.writeFileSync(f,JSON.stringify(cfg,null,2));console.log('Fixed openclaw.json:', JSON.stringify({bind:cfg?.gateway?.bind}));}
-    } catch(e){}
+        // Remove broken cron config (causes TypeError on startup)
+        if(cfg?.cron){delete cfg.cron;fixed=true;}
+        if(fixed){fs.writeFileSync(f,JSON.stringify(cfg,null,2));console.log('Fixed openclaw.json');}
+    } catch(e){console.log('openclaw.json fix skipped:',e.message);}
 " 2>&1 || true
 
 # Start gateway

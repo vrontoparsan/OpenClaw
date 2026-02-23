@@ -62,20 +62,51 @@ Docker image (auto-build z main): `ghcr.io/vrontoparsan/openclaw:latest`
 
 ```
 1. mkdir -p /data/.openclaw/devices /data/.openclaw/credentials
-2. Zapíše devices/paired.json ako {} (OBJECT, nie array! — kritické)
-3. Zapíše telegram-default-allowFrom.json z TELEGRAM_ALLOW_FROM env var
-4. Zmaže /data/.openclaw/openclaw.json (agent ho môže pokaziť — viz história nižšie)
-5. Spustí gateway: node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789
-6. Auto-approve loop každých 15s
+2. Vymaže stale .lock súbory (prevencia "session file locked" chyby po crash/restart)
+3. Zapíše devices/paired.json ako {} (OBJECT, nie array! — kritické)
+4. Zapíše telegram-default-allowFrom.json z TELEGRAM_ALLOW_FROM env var
+5. Opraví openclaw.json — zachová platné nastavenia, opraví agent-poškodené polia
+6. Injektuje Telegram group config (groupPolicy=open, requireMention=true)
+7. Spustí gateway: node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789
+8. Auto-approve loop každých 15s
 ```
 
 **Prečo root:** Railway volume `/data` je vlastnený rootom, node user (uid 1000) doň nemôže písať.
 
-**Prečo mazať openclaw.json:** Agent (Mr. Data) do neho zapisoval:
-- `gateway.bind = "loopback"` → gateway nedostupný z internetu (502)
-- `plugins.entries.telegram.streaming` → neznámy kľúč, gateway crash
-- `cron` config s neplatnými job entries → TypeError na štarte
-Riešenie: zmazať pri každom štarte, gateway vytvorí čistý default. Backup zostane ako `.bak`.
+**openclaw.json — fix, nie mazanie:** Agent môže do configu zapísať zlé hodnoty. `start.sh` ich opraví, ale zachová platné nastavenia:
+- `gateway.bind = "loopback"` → opravené na `"lan"`
+- `plugins.entries.telegram.streaming` → zmazaný (neznámy kľúč, spôsobuje crash)
+- Injektuje Telegram group config (pozri nižšie)
+
+---
+
+## Telegram skupiny
+
+OpenClaw má predvolené `groupPolicy: "allowlist"` s prázdnym allowlistom → bot ignoruje všetky správy v skupinách.
+
+**start.sh injektuje do openclaw.json:**
+```json
+{
+  "channels": {
+    "telegram": {
+      "groupPolicy": "open",
+      "groups": {
+        "*": { "requireMention": true }
+      }
+    }
+  }
+}
+```
+
+- `groupPolicy: "open"` — bot akceptuje správy zo všetkých skupín
+- `requireMention: true` pre `"*"` (všetky skupiny) — bot odpovie len keď je @mentioned
+- Telegram forum topics dostanú samostatné sessions cez `:topic:<threadId>`
+
+**Env vars pre Telegram:**
+- `TELEGRAM_BOT_TOKEN` — token bota z @BotFather
+- `TELEGRAM_ALLOW_FROM` — comma-separated Telegram user IDs pre DM (priame správy)
+
+**Stale lock files:** Po crash/restart môžu zostať `.lock` súbory v sessions adresári → `session file locked (timeout 10000ms)`. `start.sh` ich automaticky maže pri štarte.
 
 ---
 
@@ -155,6 +186,8 @@ URL: https://backboard.railway.app/graphql/v2
 | 2026-02-22 | `gateway.bind=loopback` → 502 | start.sh maže openclaw.json |
 | 2026-02-22 | cron TypeError → gateway crash | start.sh maže openclaw.json |
 | 2026-02-23 | token-refresher triggeroval redeploy loop | Pridaný `TOKEN_EXPIRES_AT` check na štarte |
+| 2026-02-23 | Telegram bot nereagoval v skupinách | `groupPolicy: "open"` + `requireMention: true` v start.sh |
+| 2026-02-23 | `session file locked (timeout 10000ms)` po crash | start.sh maže `*.lock` súbory pri štarte |
 
 ---
 

@@ -177,11 +177,45 @@ with urllib.request.urlopen(req) as r:
 
 ---
 
+## Telegram Configuration
+
+### DM (priame správy)
+Set env vars on the agent:
+- `TELEGRAM_BOT_TOKEN` — from @BotFather
+- `TELEGRAM_ALLOW_FROM` — comma-separated Telegram user IDs allowed to DM the bot
+
+`start.sh` writes `telegram-default-allowFrom.json` from `TELEGRAM_ALLOW_FROM`.
+
+### Groups (skupiny)
+`start.sh` automatically injects Telegram group config into `openclaw.json`:
+```json
+{
+  "channels": {
+    "telegram": {
+      "groupPolicy": "open",
+      "groups": { "*": { "requireMention": true } }
+    }
+  }
+}
+```
+
+- **Default OpenClaw behavior**: `groupPolicy: "allowlist"` with empty list — bot ignores ALL group messages
+- **Our fix**: `groupPolicy: "open"` — bot accepts messages from all groups
+- `requireMention: true` — bot only responds when @mentioned (prevents spam)
+- Telegram forum topics get separate sessions via `:topic:<threadId>`
+
+**To add a bot to a group:**
+1. Add the bot to the Telegram group
+2. Send a message mentioning the bot: `@botname hello`
+3. Bot responds (no additional config needed — `start.sh` handles everything)
+
+---
+
 ## Key Files
 
 - `new-agent.sh` — creates a new Railway project end-to-end
 - `Dockerfile` — runs as `root`; builds image pushed to `ghcr.io/vrontoparsan/openclaw:latest`
-- `start.sh` — fixes `/data` permissions, writes `paired.json` as `{}` (object, not array!), writes `telegram-default-allowFrom.json`, starts gateway
+- `start.sh` — cleans stale locks, writes `paired.json` as `{}`, fixes `openclaw.json` (preserves valid config, fixes agent-corrupted fields), injects Telegram group config, starts gateway
 
 ### Critical: paired.json format
 OpenClaw expects `Record<string, PairedDevice>` — an **object** `{}`, NOT an array `[]`.
@@ -198,3 +232,5 @@ OpenClaw expects `Record<string, PairedDevice>` — an **object** `{}`, NOT an a
 | `EACCES: permission denied /data` | Volume owned by root, node can't write | Already fixed: Dockerfile uses `USER root`, start.sh chowns /data |
 | `pairing required` loop | `paired.json` was `[]` not `{}` | Already fixed in start.sh |
 | `projectCreate: workspaceId required` | Personal account needs workspace | Use workspace ID `62a224e4-658b-4299-9989-89d6c0e5c456` |
+| `session file locked (timeout 10000ms)` | Stale `.lock` file from crash/restart | Already fixed: `start.sh` deletes all `.lock` files on startup. Manual fix: redeploy service |
+| Bot not responding in Telegram groups | Default `groupPolicy: "allowlist"` with empty list | Already fixed: `start.sh` injects `groupPolicy: "open"` + `requireMention: true` |

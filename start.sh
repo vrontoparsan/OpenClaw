@@ -55,22 +55,23 @@ node -e "
     console.log('openclaw.json configured (groups=open, mention=required)');
 " 2>&1 || true
 
-# Start gateway
-node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789 &
-GATEWAY_PID=$!
-echo "Gateway PID: $GATEWAY_PID"
-
-# Auto-approve device pairing loop
+# Auto-approve device pairing loop (background)
 (
     sleep 10
-    echo "=== Auto-approve ==="
-    node openclaw.mjs devices approve --latest 2>&1 || true
-
-    while kill -0 $GATEWAY_PID 2>/dev/null; do
-        sleep 15
+    while true; do
         echo "=== Auto-approve ==="
         node openclaw.mjs devices approve --latest 2>&1 || true
+        sleep 15
     done
 ) &
 
-wait $GATEWAY_PID
+# Start gateway in restart loop (survives SIGUSR1 internal restarts)
+while true; do
+    echo "=== Gateway starting ==="
+    node openclaw.mjs gateway --allow-unconfigured --bind lan --port 18789
+    EXIT_CODE=$?
+    echo "Gateway exited (code $EXIT_CODE), restarting in 3s..."
+    # Clean stale locks before restart
+    find "$STATE" -name "*.lock" -delete 2>/dev/null || true
+    sleep 3
+done

@@ -11,15 +11,11 @@ mkdir -p "$STATE/devices" "$STATE/credentials"
 # Remove stale .lock files from previous runs
 find "$STATE" -name "*.lock" -delete 2>/dev/null && echo "Stale locks cleaned" || true
 
-# Write devices/paired.json - format is Record<string,PairedDevice> (object, not array!)
-node -e "
-    const fs=require('fs');
-    const f='$STATE/devices/paired.json';
-    let obj={};
-    try{const r=JSON.parse(fs.readFileSync(f,'utf8'));if(r&&typeof r==='object'&&!Array.isArray(r))obj=r;}catch(e){}
-    fs.writeFileSync(f,JSON.stringify(obj));
-    console.log('Devices paired.json:', Object.keys(obj).length, 'entries');
-" 2>&1 || true
+# Reset device pairing state on every startup (fresh pairing via --allow-unconfigured)
+rm -rf "$STATE/devices" "$STATE/identity"
+mkdir -p "$STATE/devices"
+echo '{}' > "$STATE/devices/paired.json"
+echo "Device state reset (clean pairing)"
 
 # Write telegram allowFrom from env var
 if [ -n "\$TELEGRAM_ALLOW_FROM" ]; then

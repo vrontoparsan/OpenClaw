@@ -51,6 +51,9 @@ node -e "
     if(!cfg.gateway)cfg.gateway={};
     if(!cfg.gateway.controlUi)cfg.gateway.controlUi={};
     cfg.gateway.controlUi.dangerouslyDisableDeviceAuth=true;
+    // Set allowed origins for non-loopback Control UI (required in v2026.2.26+)
+    const domain=process.env.RAILWAY_PUBLIC_DOMAIN||process.env.RAILWAY_STATIC_URL;
+    if(domain){cfg.gateway.controlUi.allowedOrigins=['https://'+domain];}
     // Remove any persisted gateway auth token so OPENCLAW_GATEWAY_TOKEN env var takes effect
     if(cfg.gateway.auth&&cfg.gateway.auth.token)delete cfg.gateway.auth.token;
     if(cfg.gateway.auth&&cfg.gateway.auth.mode)delete cfg.gateway.auth.mode;

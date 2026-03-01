@@ -47,19 +47,13 @@ node -e "
     if(!cfg.channels.telegram.groups)cfg.channels.telegram.groups={};
     if(!cfg.channels.telegram.groups['*'])cfg.channels.telegram.groups['*']={};
     cfg.channels.telegram.groups['*'].requireMention=true;
+    // Disable device auth for Control UI — token-only auth via OPENCLAW_GATEWAY_TOKEN
+    if(!cfg.gateway)cfg.gateway={};
+    if(!cfg.gateway.controlUi)cfg.gateway.controlUi={};
+    cfg.gateway.controlUi.dangerouslyDisableDeviceAuth=true;
     fs.writeFileSync('$CONFIG',JSON.stringify(cfg,null,2));
-    console.log('openclaw.json configured (groups=open, mention=required)');
+    console.log('openclaw.json configured (groups=open, mention=required, deviceAuth=disabled)');
 " 2>&1 || true
-
-# Auto-approve device pairing loop (background)
-(
-    sleep 10
-    while true; do
-        echo "=== Auto-approve ==="
-        node openclaw.mjs devices approve --latest 2>&1 || true
-        sleep 15
-    done
-) &
 
 # Start gateway in restart loop (survives SIGUSR1 internal restarts)
 while true; do

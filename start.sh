@@ -51,6 +51,9 @@ node -e "
     if(!cfg.gateway)cfg.gateway={};
     if(!cfg.gateway.controlUi)cfg.gateway.controlUi={};
     cfg.gateway.controlUi.dangerouslyDisableDeviceAuth=true;
+    // Remove any persisted gateway auth token so OPENCLAW_GATEWAY_TOKEN env var takes effect
+    if(cfg.gateway.auth&&cfg.gateway.auth.token)delete cfg.gateway.auth.token;
+    if(cfg.gateway.auth&&cfg.gateway.auth.mode)delete cfg.gateway.auth.mode;
     fs.writeFileSync('$CONFIG',JSON.stringify(cfg,null,2));
     console.log('openclaw.json configured (groups=open, mention=required, deviceAuth=disabled)');
 " 2>&1 || true
